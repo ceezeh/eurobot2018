@@ -114,7 +114,7 @@ void turnLeft(bool withObst = 0) {
 	geometry_msgs::Twist cmd;
 
 	turnLeftflag = 0;
-	cmd.angular.z = -.1;
+	cmd.angular.z = -.3;
 	cmd_pub.publish(cmd);
 	cout << "Turn Left" << endl;
 	if (withObst) {
@@ -144,7 +144,7 @@ void turnRight(bool withObst = 0) {
 
 	geometry_msgs::Twist cmd;
 
-	cmd.angular.z = 0.1;
+	cmd.angular.z = 0.3;
 	cmd_pub.publish(cmd);
 	cout << "Turn Right" << endl;
 	turnRightflag = 0;
@@ -203,7 +203,7 @@ void moveToGoal() {
 		cout << "REACHED!!!:" << endl;
 	} else {
 
-		if (abs(angdiff) < 0.15) {
+		if (abs(angdiff) < 0.2) {
 			if (sensorflag &= (1 << SENSOR_0_BIT)) {
 				if (((sensorflag &= (1 << SENSOR_1_BIT)) == 0)
 						&& (turnLeftflag > 20)) {
@@ -215,6 +215,7 @@ void moveToGoal() {
 					turnLeft(true);
 				}
 			} else {
+//				May need to modify move forward condition
 				goStraight();
 			}
 		} else if (angdiff < 0) { // Turn  left.
@@ -222,6 +223,7 @@ void moveToGoal() {
 					&& (turnRightflag > 20)) {
 
 				turnLeft(lastright ? true : false);
+				lastright = false;
 			} else if ((sensorflag &= (1 << SENSOR_0_BIT)) == 0) {
 				goStraight();
 			} else {
@@ -231,6 +233,7 @@ void moveToGoal() {
 			if (((sensorflag &= (1 << SENSOR_1_BIT)) == 0)
 					&& (turnLeftflag > 20)) {
 				turnRight(lastleft ? true : false);
+				lastleft = false;
 			} else if ((sensorflag &= (1 << SENSOR_0_BIT)) == 0) {
 				goStraight();
 			} else {
