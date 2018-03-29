@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(reactive_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  task_planner
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,9 +106,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
+
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES reactive_control
+ #  INCLUDE_DIRS include
+ # LIBRARIES reactive_control
 #  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
@@ -201,5 +203,8 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(reactive src/reactive.cpp src/helper.cpp)
+add_executable(reactive src/reactive.cpp)
 target_link_libraries(reactive ${catkin_LIBRARIES})
+
+add_executable(temp src/astar.cpp src/main.cpp src/helper.cpp)
+target_link_libraries(temp ${catkin_LIBRARIES})

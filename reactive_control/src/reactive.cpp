@@ -2,7 +2,7 @@
  * reactive.cpp
  *
  *  Created on: Dec 3, 2017
- *      Author: deeplearning
+ *      Author: Chinemelu Ezeh
  */
 
 #include "ros/ros.h"
@@ -16,9 +16,9 @@
 #include <unistd.h>
 #include <sstream>
 #include <cmath>
-#include "reactive_control/helper.h"
 #include <ros/spinner.h>
 #include <ros/callback_queue.h>
+#include <task_planner/helper.h> // Contains definitions of task ids
 
 #define DIST_THRES 0.4
 #define SENSOR_0_BIT 0
@@ -27,6 +27,7 @@
 #define ODOM_BIT 3
 using namespace std;
 
+bool newGoal = false;
 int executionCount = 10;
 int odomflag = 0;
 int dataflag = 0;
@@ -49,8 +50,20 @@ float getAngDiff();
 void initialiseGoal() {
 	goal = geometry_msgs::Pose(odom.pose.pose);
 }
+
+// Breaks down trajectory to goal into achievable waypoints within a short time step.
+// Way points are divided by distance and not time.
+
+//void getWayPoints (vector<geometry_msgs::Pose>& wayPoints, geometry_msgs::Pose goal) {
+//
+//}
+
 void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_t) {
-	goal = geometry_msgs::Pose(goal_t->pose);
+	if (goal_t->header.frame_id == GOTO_ID) { // Only allow goto commands to pass.
+		goal = geometry_msgs::Pose(goal_t->pose);
+		cout << "Received new destination.." << endl;
+		newGoal = true;
+	}
 }
 
 void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_t) {
@@ -109,60 +122,103 @@ void irCallback2(const sensor_msgs::LaserScan::ConstPtr& ir) {
 	}
 }
 
+void align() {
+	geometry_msgs::Twist cmd;
+	float turn, target;
+	target = getYaw(goal.orientation);
+
+	turn = angDiff(target, getYaw(odom.pose.pose.orientation));
+
+	cout  <<"turn by "<<turn<< " target: " << target << ", theta:"
+					<< getYaw(odom.pose.pose.orientation) << endl;
+	cmd.angular.z = -turn;
+	cmd_pub.publish(cmd);
+	float diff = turn;
+
+	while (ros::ok() && abs(diff) > .3) {
+		diff = angDiff(target, getYaw(odom.pose.pose.orientation));
+		usleep(10000);
+		cout << "Aligning Diff: " << diff << " target: " << target << ", theta:"
+				<< getYaw(odom.pose.pose.orientation) << endl;
+	}
+	cout << "Completed aligning" << endl;
+}
+
 void turnLeft(bool withObst = 0) {
 
 	geometry_msgs::Twist cmd;
 
 	turnLeftflag = 0;
-	cmd.angular.z = -.3;
-	cmd_pub.publish(cmd);
+//	cmd.angular.z = .3;
+//	cmd_pub.publish(cmd);
 	cout << "Turn Left" << endl;
+	float turn, target;
 	if (withObst) {
-		lastleft = 1;
-		float target = angDiff(getYaw(odom.pose.pose.orientation), -M_PI / 3);
-		while (ros::ok()
-				& abs(angDiff(target, getYaw(odom.pose.pose.orientation))) > .1)
-			;
-
-		lastright = 1;
-	} else {
-		lastleft = 0;
-		while (ros::ok() & abs(getAngDiff()) > 0.1)
-			;
-		cmd.angular.z = 0;
-		cmd_pub.publish(cmd);
-	}
-}
-void turnFwdLeft() {
-	geometry_msgs::Twist cmd;
-	cmd.linear.x = .05;
-	cmd.angular.z = -0.5;
-	cmd_pub.publish(cmd);
-	cout << "Turn Forward Left" << endl;
-}
-void turnRight(bool withObst = 0) {
-
-	geometry_msgs::Twist cmd;
-
-	cmd.angular.z = 0.3;
-	cmd_pub.publish(cmd);
-	cout << "Turn Right" << endl;
-	turnRightflag = 0;
-
-	if (withObst) {
-		float target = angDiff(getYaw(odom.pose.pose.orientation), M_PI / 3);
-		while (ros::ok()
-				& abs(angDiff(target, getYaw(odom.pose.pose.orientation))) > .1)
-			;
+		target = angDiff(getYaw(odom.pose.pose.orientation), -M_PI / 3);
+		turn = M_PI / 3;
+		//		while (ros::ok()
+		//				& abs(angDiff(target, getYaw(odom.pose.pose.orientation))) > .1)
+		//			;
 
 		lastright = 1;
 	} else {
 		lastright = 0;
-		while (ros::ok() & abs(getAngDiff()) > 0.1)
-			;
-		cmd.angular.z = 0;
-		cmd_pub.publish(cmd);
+		target = atan2(goal.position.y - odom.pose.pose.position.y,
+				goal.position.x - odom.pose.pose.position.x);
+		turn = getAngDiff();
+
 	}
+
+	cmd.angular.z = turn;
+	cmd_pub.publish(cmd);
+	float diff = angDiff(target, getYaw(odom.pose.pose.orientation));
+
+	while (ros::ok() && abs(diff) > .3) {
+		diff = angDiff(target, getYaw(odom.pose.pose.orientation));
+		usleep(10000);
+		cout << "Left Diff: " << diff << " target: " << target << ", theta:"
+				<< getYaw(odom.pose.pose.orientation) << endl;
+	}
+	cout << "Completed turn" << endl;
+}
+
+void turnRight(bool withObst = 0) {
+
+	geometry_msgs::Twist cmd;
+
+//	cmd.angular.z = -0.3;
+//	cmd_pub.publish(cmd);
+	cout << "Turn Right" << endl;
+	turnRightflag = 0;
+
+	float turn, target;
+	if (withObst) {
+		target = angDiff(getYaw(odom.pose.pose.orientation), M_PI / 3);
+		turn = -M_PI / 3;
+//		while (ros::ok()
+//				& abs(angDiff(target, getYaw(odom.pose.pose.orientation))) > .1)
+//			;
+
+		lastright = 1;
+	} else {
+		lastright = 0;
+		target = atan2(goal.position.y - odom.pose.pose.position.y,
+				goal.position.x - odom.pose.pose.position.x);
+		turn = getAngDiff();
+
+	}
+
+	cmd.angular.z = turn;
+	cmd_pub.publish(cmd);
+	float diff = angDiff(target, getYaw(odom.pose.pose.orientation));
+
+	while (ros::ok() && abs(diff) > .3) {
+		diff = angDiff(target, getYaw(odom.pose.pose.orientation));
+		usleep(10000);
+		cout << "Right Diff: " << diff << " target: " << target << ", theta:"
+				<< getYaw(odom.pose.pose.orientation) << endl;
+	}
+	cout << "Completed turn" << endl;
 
 }
 
@@ -175,9 +231,13 @@ void goStraight() {
 	cmd_pub.publish(cmd);
 	cout << "Go Straight" << endl;
 }
-void reverseAndLeft() {
 
+void stop(){
+	geometry_msgs::Twist cmd;
+	cout << "Stopping" << endl;
+	cmd_pub.publish(cmd);
 }
+
 float getAngDiff() {
 	float heading = getYaw(odom.pose.pose.orientation);
 	float bearingToGoal = atan2(goal.position.y - odom.pose.pose.position.y,
@@ -186,6 +246,8 @@ float getAngDiff() {
 	return angdiff;
 }
 void moveToGoal() {
+	if (!newGoal)
+		return;
 	std_msgs::Int8 complete_status;
 	geometry_msgs::Twist cmd;
 	// check if we have arrived at goal
@@ -196,14 +258,16 @@ void moveToGoal() {
 
 	float angdiff = getAngDiff();
 	cout << "Difference to goal. Dist:" << d << ", Angle:" << angdiff << endl;
-	if (d < 0.1) { // Stop, have arrived.
-		cmd_pub.publish(cmd);
+	if (d < 0.04) { // Stop, have arrived.
+		align();
+		stop();
 		complete_status.data = 1;
+		newGoal = false;
 		// indicate that we have reached.
 		cout << "REACHED!!!:" << endl;
 	} else {
 
-		if (abs(angdiff) < 0.2) {
+		if (abs(angdiff) < 0.3) {
 			if (sensorflag &= (1 << SENSOR_0_BIT)) {
 				if (((sensorflag &= (1 << SENSOR_1_BIT)) == 0)
 						&& (turnLeftflag > 20)) {
@@ -227,7 +291,8 @@ void moveToGoal() {
 			} else if ((sensorflag &= (1 << SENSOR_0_BIT)) == 0) {
 				goStraight();
 			} else {
-				cmd_pub.publish(cmd);
+				stop();
+				cout <<"Check2.1"<<endl;
 			}
 		} else if (angdiff > 0) { // Turn  right.
 			if (((sensorflag &= (1 << SENSOR_1_BIT)) == 0)
@@ -237,7 +302,8 @@ void moveToGoal() {
 			} else if ((sensorflag &= (1 << SENSOR_0_BIT)) == 0) {
 				goStraight();
 			} else {
-				cmd_pub.publish(cmd);
+				stop();
+				cout <<"Check2"<<endl;
 			}
 		}
 		complete_status.data = -1;
@@ -254,31 +320,30 @@ int main(int argc, char **argv) {
 
 	ros::NodeHandle n;
 
-	cmd_pub = n.advertise < geometry_msgs::Twist > ("/my_robot/cmd_vel", 10);
-	complete_pub = n.advertise < std_msgs::Int8 > ("/task_status", 10);
+	cmd_pub = n.advertise<geometry_msgs::Twist>("/my_robot/cmd_vel", 10);
+	complete_pub = n.advertise<std_msgs::Int8>("/task_status", 10);
 	ros::CallbackQueue queue;
 
 	// create options for subscriber and pass pointer to our custom queue
-	ros::SubscribeOptions ops = ros::SubscribeOptions::create
-			< geometry_msgs::PoseStamped > ("/my_robot/goal", // topic name
-	10, // queue length
-	goalCallback, // callback
-	ros::VoidPtr(), // tracked object, we don't need one thus NULL
-	&queue // pointer to callback queue object
+	ros::SubscribeOptions ops = ros::SubscribeOptions::create<
+			geometry_msgs::PoseStamped>("/my_robot/goal", // topic name
+			10, // queue length
+			goalCallback, // callback
+			ros::VoidPtr(), // tracked object, we don't need one thus NULL
+			&queue // pointer to callback queue object
 			);
 // Goal
 	ros::Subscriber sub = n.subscribe(ops);
-	ops = ros::SubscribeOptions::create < sensor_msgs::LaserScan > ("ir", // topic name
-	10, // queue length
-	irCallback, // callback
-	ros::VoidPtr(), // tracked object, we don't need one thus NULL
-	&queue // pointer to callback queue object
+	ops = ros::SubscribeOptions::create<sensor_msgs::LaserScan>("ir", // topic name
+			1, // queue length
+			irCallback, // callback
+			ros::VoidPtr(), // tracked object, we don't need one thus NULL
+			&queue // pointer to callback queue object
 			);
 // IRs
 	ros::Subscriber sub1 = n.subscribe(ops);
-	ops = ros::SubscribeOptions::create < nav_msgs::Odometry
-			> ("/my_robot/odom", // topic name
-			10, // queue length
+	ops = ros::SubscribeOptions::create<nav_msgs::Odometry>("/my_robot/odom", // topic name
+			1, // queue length
 			odomCallback, // callback
 			ros::VoidPtr(), // tracked object, we don't need one thus NULL
 			&queue // pointer to callback queue object
@@ -291,13 +356,14 @@ int main(int argc, char **argv) {
 	ros::AsyncSpinner spinner(0, &queue);
 	spinner.start();
 
-	ros::Rate loop_rate(50);
+	ros::Rate loop_rate(10);
 //	goal.position.x = 10;
 	goal.orientation.w = 1;
 	sleep(2);
 	initialiseGoal();
 	while (ros::ok()) {
-		if (dataflag != 15) {
+		if (dataflag != 8) {
+			stop();
 			ros::spinOnce();
 		} else {
 			moveToGoal();

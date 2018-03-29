@@ -1,0 +1,308 @@
+<?xml version="1.0"?>
+<robot name="my_robot">
+    <link name="chassis">
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
+      <inertial>
+		<origin xyz="0 0 0.2" rpy="0 0 0"/>
+		<mass value="15"/>
+		<inertia
+			ixx="0.35595" ixy="0.0" ixz="0.0"
+			iyy="0.525" iyz="0.0"
+			izz="0.1125"/>
+		</inertial>
+      <self_collide>0</self_collide>
+      <kinematic>0</kinematic>
+      <visual name="visual">
+        <geometry>
+			<cylinder length="0.3" radius="0.15"/>
+        </geometry>
+        <origin xyz="0 0 0.2" rpy="0 0 0"/>
+      </visual>
+      <collision name="collision">
+        <origin xyz="0 0 0.2" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="0.3" radius="0.15"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="castor">
+      <visual name="caster_visual">
+      	<origin xyz="-0.22 0 0" rpy="0 0 0"/>
+        <geometry>
+        	<sphere radius="0.05"/>
+        </geometry>
+      </visual>
+      <collision name="caster_collision">
+        <origin xyz="-0.22 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.05"/>
+        </geometry>
+      </collision>
+    </link>
+    
+    <link name="left_wheel">
+    <inertial>
+		<mass value="1"/>
+		<inertia
+			ixx="1.0" ixy="0.0" ixz="0.0"
+			iyy="1.0" iyz="0.0"
+			izz="1.0"/>
+	</inertial>
+      <self_collide>0</self_collide>
+      <kinematic>0</kinematic>
+      <visual name="visual">
+        <geometry>
+        <cylinder length="0.02" radius="0.065"/>
+        </geometry>
+            <origin xyz="0.1 0.17 -0.06" rpy="0.000558 1.5707 1.57126"/>
+      </visual>
+      <collision name="collision">
+            <origin xyz="0.1 0.17 -0.06" rpy="0.000558 1.5707 1.57126"/>
+        <geometry>
+        <cylinder length="0.02" radius="0.065"/>
+        </geometry>        
+      </collision>
+    </link>
+    
+    <link name="right_wheel">
+    <inertial>
+		<mass value="1"/>
+		<inertia
+			ixx="1.0" ixy="0.0" ixz="0.0"
+			iyy="1.0" iyz="0.0"
+			izz="1.0"/>
+	</inertial>
+      <visual name="visual">
+        <geometry>
+          <cylinder length="0.02" radius="0.065"/>
+        </geometry>
+        <origin xyz="0.1 -0.17 -0.06" rpy="0.000558 1.5707 1.57126"/>
+      </visual>
+      <collision name="collision">
+        <origin xyz="0.1 -0.17 -0.065" rpy="0.000558 1.5707 1.57126"/>
+        <geometry>
+          <cylinder length="0.02" radius="0.065"/>
+        </geometry>    
+      </collision>
+    </link>
+    
+    <joint name="left_wheel_hinge" type="revolute">
+		<parent link="chassis"/>
+		<child link="left_wheel"/>
+		<origin xyz="0 0.0 -0.0" rpy="0 0 0"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="-1" velocity="-1" lower="-1e+16" upper="1e+16"/>
+	</joint>
+	
+	<joint name="right_wheel_hinge" type="revolute">
+		<parent link="chassis"/>
+		<child link="right_wheel"/>
+		<origin xyz="0 0 -0.0" rpy="0 0 0"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="-1" velocity="-1" lower="-1e+16" upper="1e+16"/>
+	</joint>
+    
+	<joint name="castor_hinge" type="fixed">
+	    <parent link="chassis"/>
+	    <child link="castor"/>
+	    <origin rpy="0 0 0" xyz="0.133333333333 0 0"/>
+	  </joint>
+	  <!--
+    <gazebo reference="chassis">
+      <sensor name="ir4" type="ray">
+        <pose frame=""> 0.049 -0.152  0 0 -0 -1.2566370614</pose>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.0001</min_angle>
+              <max_angle>0.0001</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.08</min>
+            <max>0.8</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/ir</topicName>
+          <frameName>ir4</frameName>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>1</visualize>
+      </sensor>
+      <sensor name="ir3" type="ray">
+        <pose frame=""> -0.1294427191 -0.09404564037 0 0 -0 -2.5132741229</pose>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.0001</min_angle>
+              <max_angle>0.0001</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.08</min>
+            <max>0.8</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/ir</topicName>
+          <frameName>ir3</frameName>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>1</visualize>
+      </sensor>
+       <sensor name="ir2" type="ray">
+        <pose frame=""> -0.1294427191 0.09404564037 0 0 -0 2.5132741229</pose>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.0001</min_angle>
+              <max_angle>0.0001</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.08</min>
+            <max>0.8</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/ir</topicName>
+          <frameName>ir2</frameName>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>1</visualize>
+      </sensor>
+      <sensor name="ir1" type="ray">
+        <pose frame="">0.049 0.152  0 0 -0 1.2566370614</pose>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.0001</min_angle>
+              <max_angle>0.0001</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.08</min>
+            <max>0.8</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/ir</topicName>
+          <frameName>ir1</frameName>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>1</visualize>
+      </sensor>
+      <sensor name="ir0" type="ray">
+        <pose frame="">0.17 0 0 0 -0 0</pose>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.0001</min_angle>
+              <max_angle>0.0001</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.08</min>
+            <max>0.8</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/ir</topicName>
+          <frameName>ir0</frameName>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>1</visualize>
+      </sensor>
+      </gazebo>
+    <gazebo>
+    	<static>0</static>
+    	<allow_auto_disable>1</allow_auto_disable>
+	    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+	      <alwaysOn>true</alwaysOn>
+	      <updateRate>20</updateRate>
+	      <leftJoint>left_wheel_hinge</leftJoint>
+	      <rightJoint>right_wheel_hinge</rightJoint>
+	      <wheelSeparation>0.34</wheelSeparation>
+	      <wheelDiameter>0.13</wheelDiameter>
+	      <torque>5</torque>
+	      <commandTopic>cmd_vel</commandTopic>
+	      <odometryTopic>odom</odometryTopic>
+	      <odometryFrame>odom</odometryFrame>
+	      <robotBaseFrame>base_footprint</robotBaseFrame>
+	      <legacyMode>true</legacyMode>
+	    </plugin>
+    </gazebo>
+    -->
+  </robot>

@@ -1,0 +1,18 @@
+<launch>
+  <node pkg="uvc_camera" type="uvc_stereo_node" name="uvc_stereo" output="screen">
+    <param name="width" type="int" value="640" />
+    <param name="height" type="int" value="480" />
+    <param name="fps" type="int" value="5" />
+    <param name="frame" type="string" value="wide_stereo" />
+
+    <param name="auto_focus" type="bool" value="False" />
+    <param name="focus_absolute" type="int" value="0" />
+    <!-- other supported params: auto_exposure, exposure_absolute, brightness, power_line_frequency -->
+
+    <param name="left/device" type="string" value="/dev/video1" />
+    <param name="right/device" type="string" value="/dev/video2" />
+    <param name="left/camera_info_url" type="string" value="file:///home/deeplearning/catkin_ws/src/localisation/calib/left/left.yaml" />
+    <param name="right/camera_info_url" type="string" value="file:///home/deeplearning/catkin_ws/src/localisation/calib/right/right.yaml" />
+  </node>
+    <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" output="screen"/>
+</launch>
