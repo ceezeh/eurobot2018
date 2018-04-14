@@ -1,0 +1,4 @@
+joint1_length: 0.1 
+Joint1_offset: 3.14
+joint0_coordinate: [.1,-.05]
+right_fov_lim_y: -0.1

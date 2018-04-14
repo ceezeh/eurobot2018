@@ -81,7 +81,6 @@ using namespace std;
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "cube_detection");
-	cv::namedWindow("Original", CV_WINDOW_AUTOSIZE);
 
 	ros::NodeHandle nh;
 	image_transport::ImageTransport it_ = image_transport::ImageTransport(nh);
@@ -98,15 +97,21 @@ int main(int argc, char** argv) {
 	if (argc > 1) {
 		if (strcmp(argv[1], "c") == 0) {
 			detector.calibrateThreshold();
+		} else if (strcmp(argv[1], "d") == 0) {
+			detector.calibrateDistanceDetection();
+			return 0;
 		}
 	}
 
 //	objectDetector::ColorProfile orange = { Vec2d(18, 163), "orange" };
 //	objectDetector::ColorProfile white = { Vec2d(0, 0), "white" };
 
-	detector.runCubeDetection();
-	while (ros::ok())
-		;
+//	detector.runCubeDetection();
+	cout << "Real: " << objectDetector::convertPixelToBody(Vec2d(500, 300), 0);
+	while (ros::ok()) {
+		usleep(5000);
+	}
+
 	return 0;
 }
 

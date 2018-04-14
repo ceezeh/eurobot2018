@@ -1,0 +1,6 @@
+GOTO_ID: "goto"
+PICK_ID: "pick"
+PLACE_ID: "place"
+READPLAN_ID: "read"
+COLORS: ["orange", "black", "blue", "yellow", "green"]
+
