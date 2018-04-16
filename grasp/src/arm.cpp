@@ -23,7 +23,7 @@ Arm::Arm() {
 Pose3D Arm::checkReachability(arm::Pose3D p) {
 	float dist = sqrt(pow(p.x - arm_origin.x, 2) + pow(p.y - arm_origin.y, 2));
 	if (dist < max_radius && p.y > -right_fov_lim_y) {
-		return {0,0};
+		return {0,0,0,0};
 	} else {
 		// Try to keep the object at the centre of the screen.
 		// Find rotation.

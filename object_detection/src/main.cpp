@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 	int ct2 = 150;
 	int blurSize = 7;
 
-	objectDetector::ObjectDetector detector = objectDetector::ObjectDetector(nh,
+	objectDetector::ObjectDetector detector(nh,
 			it_, ct1, ct2, blurSize, minArea, r);
 
 	if (argc > 1) {

@@ -42,6 +42,7 @@ extern int serialDataAvail(const int fd);
 extern int serialGetchar(const int fd);
 extern int writeBytes(int descriptor, char* buf, int count);
 extern int readBytes(int descriptor, char* buf, int count);
+extern int readLine(int descriptor, char* buf, int count);
 
 #ifdef __cplusplus
 }

@@ -9,6 +9,9 @@
 
 #include <algorithm>
 #include <ros/ros.h>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
+
 using namespace objectDetector;
 using namespace std;
 using namespace cv;
@@ -137,31 +140,22 @@ ObjectDetector::ObjectDetector(ros::NodeHandle &nh,
 	planPub = this->nh.advertise<std_msgs::String>("/construction_plan", 10);
 	planAcquisitionTime = ros::Duration(10);
 
-
-
-	ros::SubscribeOptions 	ops =  ros::SubscribeOptions::create<
+	ros::SubscribeOptions ops = ros::SubscribeOptions::create<
 			geometry_msgs::PoseStamped>("/my_robot/goal", // topic name
 			10, // queue length
-			goalCallback, // callback
+			boost::bind(&ObjectDetector::goalCallback, this, _1), // callback
 			ros::VoidPtr(), // tracked object, we don't need one thus NULL
 			&queue // pointer to callback queue object
 			);
 
-		// Odom
-		this->plan_sub = this->nh.subscribe(ops);
+	// Odom
+	this->plan_sub = this->nh.subscribe(ops);
 
-		// Spinner
-		this->spinner = new ros::AsyncSpinner(0, &queue);
-		this->spinner.start();
-
-
-
+	// Spinner
+	this->spinner = new ros::AsyncSpinner(0, &queue);
+	this->spinner->start();
 
 }
-
-
-
-
 
 void ObjectDetector::getColorCube(Mat img, ColorProfile c) {
 
@@ -415,7 +409,7 @@ void ObjectDetector::calibrateThreshold() {
 		getImage();
 
 		Mat threshold_output;
-		vector < vector<Point> > contours;
+		vector<vector<Point> > contours;
 		vector<Vec4i> hierarchy;
 
 //			adaptiveThreshold(threshImg, threshImg, 255, ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -430,7 +424,7 @@ void ObjectDetector::calibrateThreshold() {
 		cv::erode(threshImg, threshImg, 0);	// Erode Filter Effect
 
 		Mat drawing = Mat::zeros(threshImg.size(), CV_8UC3);
-		vector < vector<Point> > contours0;
+		vector<vector<Point> > contours0;
 
 		findContours(threshImg, contours0, hierarchy, RETR_TREE,
 				CHAIN_APPROX_SIMPLE, Point(0, 0));

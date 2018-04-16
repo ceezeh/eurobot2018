@@ -42,14 +42,27 @@ struct Pose3D {
 	float y;
 	float z;
 	float theta;
+
+	bool operator!=(const Pose3D &other) const {
+		return !((*this) == other);
+	}
+	bool operator==(const Pose3D &other) const {
+		// Compare the values, and return a bool result.
+		if (equals(this->x, other.x) && equals(this->y, other.y)
+		&& equals(this->z, other.z) && equals(angDiff(this->theta, other.theta),0)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 };
 
 class Arm {
 
 public:
-	Arm ();
+	Arm();
 	JointAngles calculateIK(Pose3D);
-	Pose3D Arm::checkReachability(Pose3D p);
+	Pose3D checkReachability(Pose3D p);
 private:
 	Pose3D arm_origin;
 	float max_radius;

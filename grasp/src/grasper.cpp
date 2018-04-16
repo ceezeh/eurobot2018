@@ -11,12 +11,19 @@
 #include <cmath>
 #include "std_msgs/Int16MultiArray.h"
 #include "grasp/wiringSerial.h"
+#include "task_planner/helper.h"
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
 
 using namespace grasper;
 using namespace arm;
 using namespace std;
 
 mutex moveMutex, cubeMutex;
+
+#define FLAPHOLD_CMD 115
+#define OPENFLAPS_CMD 102
+#define CLOSEFLAPS_CMD 250
 
 Grasper::Grasper(ros::NodeHandle &n) :
 		ballHeight(.58) {
@@ -25,32 +32,30 @@ Grasper::Grasper(ros::NodeHandle &n) :
 	cubeTimeout = ros::Duration(5);
 	// TODO: Load these dynamically.
 
-	PLACE_ID = "place";
-	PICK_ID = "pick";
 	command = "";
 
 	/*
 	 * Load ROS Constants.
 	 */
 
-	this->move_pub = nh.advertise<geometry_msgs::PoseStamped>(
-			"/my_robot/goal", 1);
+	this->move_pub = nh.advertise<geometry_msgs::PoseStamped>("/my_robot/goal",
+			1);
 
 	// create options for subscriber and pass pointer to our custom queue
 	ros::SubscribeOptions ops = ros::SubscribeOptions::create<
 			geometry_msgs::PoseStamped>("/my_robot/arm_instructions", // topic name
 			10, // queue length
-			boost::bind(Grasper::goalCallback, this, _1), // callback
+			boost::bind(&Grasper::goalCallback, this, _1), // callback
 			ros::VoidPtr(), // tracked object, we don't need one thus NULL
 			&queue // pointer to callback queue object
 			);
 
 	this->goalSub = nh.subscribe(ops);
 
-	ops = ros::SubscribeOptions::create<geometry_msgs::PoseStamped>(
+	ops = ros::SubscribeOptions::create<geometry_msgs::PointStamped>(
 			"/cube_position", // topic name
 			10, // queue length
-			boost::bind(Grasper::cubeCallback, this, _1), // callback
+			boost::bind(&Grasper::cubeCallback, this, _1), // callback
 			ros::VoidPtr(), // tracked object, we don't need one thus NULL
 			&queue // pointer to callback queue object
 			);
@@ -59,7 +64,7 @@ Grasper::Grasper(ros::NodeHandle &n) :
 
 	ops = ros::SubscribeOptions::create<std_msgs::Int8>("/task_status", // topic name
 			10, // queue length
-			boost::bind(Grasper::moveCallback, this, _1), // callback
+			boost::bind(&Grasper::moveCallback, this, _1), // callback
 			ros::VoidPtr(), // tracked object, we don't need one thus NULL
 			&queue // pointer to callback queue object
 			);
@@ -92,6 +97,9 @@ void Grasper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_t) {
 		target.color = extraInfo;
 		target.pose = geometry_msgs::Pose(goal_t->pose);
 		this->command = command;
+	} else if (command == FLAPHOLD_ID || command == CLOSEFLAPS_ID
+			|| command == OPENFLAPS_ID) {
+		sendFlapCommands(command);
 	}
 }
 
@@ -150,26 +158,29 @@ bool Grasper::getCube() {
 void Grasper::processCmd() {
 	if (newGoal) {
 		// Verify location of object.
-		if (command == this->PICK_ID) { // TODO: Add time constraint.
+		if (command == PICK_ID) { // TODO: Add time constraint.
 			// Pick instruction.
 			if (!getCube()) {
 				// Do something to improve object detection
 			} else {
 				// Determine if the object is in workspace.
-				Distance d = this->arm.checkReachability(
-						Pose3D(target.pose.position.x, target.pose.position.y,
-								target.pose.position.z));
+				arm::Pose3D t = this->arm.checkReachability(
+						{ target.pose.position.x, target.pose.position.y,
+								target.pose.position.z, 0 });
 				bool ret = 1;
 				// If not move robot close enough.
-				if (d != (Distance ) { 0, 0 }) {
-					geometry_msgs::Pose2D p;
-					p.x = d.lin;
-					p.theta = d.ang;
+				if (t != (arm::Pose3D ) { 0, 0, 0, 0 }) {
+					geometry_msgs::PoseStamped p;
+					bodyToGlobal(&t);
+					p.pose.position.x = t.x;
+					p.pose.position.y = t.y;
+					p.pose.orientation = getQuaternion(t.theta);
 					move_pub.publish(p);
+
 					moveMutex.lock();
 					moveComplete = 0;
 					moveMutex.unlock();
-					while (!moveComplete&& ros::ok())
+					while (!moveComplete && ros::ok())
 						;
 					ret = getCube();
 				}
@@ -182,27 +193,31 @@ void Grasper::processCmd() {
 					double gripAngle = 0;
 					j.gripper = gripAngle;
 					// Send to Arduino node.
-					sendJointAngles(j,true);
+					sendJointAngles(j, true);
 
 				} else {
 					// Do something to improve object detection
 				}
 			}
-		} else if (command == this->PLACE_ID) {
+		} else if (command == PLACE_ID) {
 			// Fine motion adjustment before placing.
 			// Convert pose to body frame.
-			arm::Pose3D tpose = target.pose;
+			arm::Pose3D tpose = { target.pose.position.x,
+					target.pose.position.y, target.pose.position.z, 0 };
 			globalToBody(&tpose);
 			arm::Pose3D t = this->arm.checkReachability(tpose);
 			bool ret = 1;
 			// If not move robot close enough.
-			if (t != (arm::Pose3D) { 0, 0 }) {
+			if (t != (arm::Pose3D ) { 0, 0, 0, 0 }) {
 				geometry_msgs::PoseStamped p;
 				bodyToGlobal(&t);
 				p.pose.position.x = t.x;
 				p.pose.position.y = t.y;
 				p.pose.orientation = getQuaternion(t.theta);
 				move_pub.publish(p);
+				moveMutex.lock();
+				moveComplete = 0;
+				moveMutex.unlock();
 				while (!moveComplete)
 					;
 			}
@@ -210,7 +225,7 @@ void Grasper::processCmd() {
 			double gripAngle = 90;
 			j.gripper = gripAngle;
 			// Send to Arduino node
-			sendJointAngles(j,false);
+			sendJointAngles(j, false);
 		}
 	}
 }
@@ -290,17 +305,17 @@ arm::Pose3D Grasper::pixelToBody(cv::Vec2i pixel, int height) {
 			}
 		}
 	}
-	return arm::Pose3D(0, 0, 0);
+	return {0, 0, 0};
 }
 
 void Grasper::sendJointAngles(JointAngles j, bool isClose) {
-	unsigned char direction = 100; //open grip direction.
-	unsigned char BASE = 254;
-	unsigned char ELBOW0 = 253;
-	unsigned char ELBOW1 = 252;
-	unsigned char ELBOW2 = 251;
-	unsigned char WRIST = 250;
-	unsigned char GRASP = 249;
+	char direction = 100; //open grip direction.
+	char BASE = 254;
+	char ELBOW0 = 253;
+	char ELBOW1 = 252;
+	char ELBOW2 = 251;
+	char WRIST = 250;
+	char GRASP = 249;
 
 	// Ensure joints are well formatted.
 	// First convert to degrees.
@@ -313,40 +328,40 @@ void Grasper::sendJointAngles(JointAngles j, bool isClose) {
 
 	int8_t s1 =
 			(abs(j.shoulder1) > 180) ?
-					std::copysign(127, j.shoulder1) : j.shoulder1 & 255;
+					std::copysign(127, j.shoulder1) : int(j.shoulder1) & 255;
 	int8_t s2 =
 			(abs(j.shoulder2) > 180) ?
-					std::copysign(127, j.shoulder2) : j.shoulder2 & 255;
+					std::copysign(127, j.shoulder2) : int(j.shoulder2) & 255;
 	int8_t e1 =
 			(abs(j.elbow1) > 180) ?
-					std::copysign(127, j.elbow1) : j.elbow1 & 255;
+					std::copysign(127, j.elbow1) : int(j.elbow1) & 255;
 	int8_t e2 =
 			(abs(j.elbow2) > 180) ?
-					std::copysign(127, j.elbow2) : j.elbow2 & 255;
+					std::copysign(127, j.elbow2) : int(j.elbow2) & 255;
 	int8_t w =
-			(abs(j.wrist) > 180) ? std::copysign(127, j.wrist) : j.wrist & 255;
+			(abs(j.wrist) > 180) ?
+					std::copysign(127, j.wrist) : int(j.wrist) & 255;
 	int8_t g =
 			(abs(j.gripper) > 180) ?
-					std::copysign(127, j.gripper) : j.gripper & 255;
+					std::copysign(127, j.gripper) : int(j.gripper) & 255;
 
 	if (isClose) { // Grasp 0 is open...
-		unsigned char buffer[15] = { 49, GRASP, 0, BASE, s1, ELBOW0, s2, ELBOW1,
-				e1, ELBOW2, e2, WRIST, w, GRASP, 255 };
-		writeBytes(this->serialfd, buffer, 14);
+		char buffer[15] = { 49, GRASP, 0, BASE, s1, ELBOW0, s2, ELBOW1, e1,
+				ELBOW2, e2, WRIST, w, GRASP, char(255) };
+		writeBytes(this->serialfd, buffer, 15);
 	} else {
-		unsigned char buffer[15] = { 49, BASE, s1, ELBOW0, s2,
-				ELBOW1, e1, ELBOW2, e2, WRIST, w, GRASP, g, 100,100 }; /// 100is empty command just to make the command length uniform
-		writeBytes(this->serialfd, buffer, 14);
+		char buffer[15] = { 49, BASE, s1, ELBOW0, s2, ELBOW1, e1, ELBOW2, e2,
+				WRIST, w, GRASP, g, 100, 100 }; /// 100is empty command just to make the command length uniform
+		writeBytes(this->serialfd, buffer, 15);
 	}
-
 
 }
 /*
  * T is the transformation matrix;
  */
 void Grasper::globalToBody(Pose3D *rpoint) {
-	Pose3D T = Pose3D(odom.pose.pose.position.x, odom.pose.pose.position.y,
-			getYaw(odom.pose.pose.orientation));
+	Pose3D T = { odom.pose.pose.position.x, odom.pose.pose.position.y,
+			odom.pose.pose.position.z, getYaw(odom.pose.pose.orientation) };
 	rpoint->x -= T.x;
 	rpoint->y -= T.y;
 	float x0 = cos(-T.theta) * rpoint->x - sin(-T.theta) * rpoint->y;
@@ -357,8 +372,8 @@ void Grasper::globalToBody(Pose3D *rpoint) {
 }
 
 void Grasper::bodyToGlobal(Pose3D *rpoint) {
-	Pose3D T = Pose3D(odom.pose.pose.position.x, odom.pose.pose.position.y,
-			getYaw(odom.pose.pose.orientation));
+	Pose3D T = { odom.pose.pose.position.x, odom.pose.pose.position.y,
+			odom.pose.pose.position.z, getYaw(odom.pose.pose.orientation) };
 
 	float x0 = cos(T.theta) * rpoint->x - sin(T.theta) * rpoint->y;
 	float y0 = sin(T.theta) * rpoint->x + cos(T.theta) * rpoint->y;
@@ -367,4 +382,18 @@ void Grasper::bodyToGlobal(Pose3D *rpoint) {
 	rpoint->y = T.y + y0;
 
 	rpoint->theta = angDiff(rpoint->theta, -getYaw(odom.pose.pose.orientation));
+}
+
+void Grasper::sendFlapCommands(string command) {
+	char buffer[15] = { 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	if (command == FLAPHOLD_ID) {
+		buffer[1] = FLAPHOLD_CMD;
+		writeBytes(serialfd, buffer, 15);
+	} else if (command == CLOSEFLAPS_ID) {
+		buffer[1] = CLOSEFLAPS_CMD;
+		writeBytes(serialfd, buffer, 15);
+	} else if (command == OPENFLAPS_ID) {
+		buffer[1] = OPENFLAPS_CMD;
+		writeBytes(serialfd, buffer, 15);
+	}
 }

@@ -8,9 +8,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <cmath>
 #include "cppopt/optimization.h"
 #include "grasp/helper.h"
 using namespace alglib;
+using namespace std;
 double goal[2];
 
 double l1 = 1.1;
@@ -36,85 +38,73 @@ void nlcfunc1_jac(const real_1d_array &x, real_1d_array &fi, real_2d_array &jac,
 	double T1 = gx;
 	double T2 = gy;
 	double T3 = gz;
-	fi[0] = (37 * sin(conj(j02)) + conj(T3) - 18) * (T3 + 37 * sin(j02) - 18)
-			+ (j02 + j03 + j12 + j22 - pi / 2)
-			^ 2 / 100
-					+ (18 * cos(conj(j03) + conj(j12) + conj(j22))
-							* cos(conj(j02)) - conj(T1)
-							+ 11 * cos(conj(j02)) * cos(conj(j03))
-							+ 8 * cos(conj(j02)) * cos(conj(j03) + conj(j12))
-							+ 5)
+	fi[0] = (37 * sin((j02)) + (T3) - 18) * (T3 + 37 * sin(j02) - 18)
+			+ pow(j02 + j03 + j12 + j22 - M_PI / 2,
+			2) / 100
+					+ (18 * cos((j03) + (j12) + (j22)) * cos((j02)) - (T1)
+							+ 11 * cos((j02)) * cos((j03))
+							+ 8 * cos((j02)) * cos((j03) + (j12)) + 5)
 							* (18 * cos(j03 + j12 + j22) * cos(j02) - T1
 									+ 8 * cos(j03 + j12) * cos(j02)
 									+ 11 * cos(j02) * cos(j03) + 5)
-					+ (18 * cos(conj(j02))
-							* sin(conj(j03) + conj(j12) + conj(j22)) - conj(T2)
-							+ 11 * cos(conj(j02)) * sin(conj(j03))
-							+ 8 * cos(conj(j02)) * sin(conj(j03) + conj(j12))
-							- 15)
+					+ (18 * cos((j02)) * sin((j03) + (j12) + (j22)) - (T2)
+							+ 11 * cos((j02)) * sin((j03))
+							+ 8 * cos((j02)) * sin((j03) + (j12)) - 15)
 							* (11 * cos(j02) * sin(j03) - T2
 									+ 18 * sin(j03 + j12 + j22) * cos(j02)
-									+ 8 * sin(j03 + j12) * cos(j02) - 15) + j02
-			^ 2 / 1000 + j03 ^ 2 / 1000 + j12 ^ 2 / 1000 + j22 ^ 2 / 1000;
+									+ 8 * sin(j03 + j12) * cos(j02) - 15)
+					+ pow(j02, 2) / 1000 + pow(j03, 2) / 1000
+					+ pow(j12, 2) / 1000 + pow(j22, 2) / 1000;
 
-	jac[0][0] = (11 * j02) / 500 + j03 / 50 + j12 / 50 + j22 / 50 - pi / 100
+	jac[0][0] = (11 * j02) / 500 + j03 / 50 + j12 / 50 + j22 / 50 - M_PI / 100
 			- (11 * sin(j02) * sin(j03) + 18 * sin(j03 + j12 + j22) * sin(j02)
 					+ 8 * sin(j03 + j12) * sin(j02))
-					* (18 * cos(conj(j02))
-							* sin(conj(j03) + conj(j12) + conj(j22)) - conj(T2)
-							+ 11 * cos(conj(j02)) * sin(conj(j03))
-							+ 8 * cos(conj(j02)) * sin(conj(j03) + conj(j12))
-							- 15)
-			- (18 * cos(conj(j03) + conj(j12) + conj(j22)) * sin(conj(j02))
-					+ 11 * cos(conj(j03)) * sin(conj(j02))
-					+ 8 * sin(conj(j02)) * cos(conj(j03) + conj(j12)))
+					* (18 * cos((j02)) * sin((j03) + (j12) + (j22)) - (T2)
+							+ 11 * cos((j02)) * sin((j03))
+							+ 8 * cos((j02)) * sin((j03) + (j12)) - 15)
+			- (18 * cos((j03) + (j12) + (j22)) * sin((j02))
+					+ 11 * cos((j03)) * sin((j02))
+					+ 8 * sin((j02)) * cos((j03) + (j12)))
 					* (18 * cos(j03 + j12 + j22) * cos(j02) - T1
 							+ 8 * cos(j03 + j12) * cos(j02)
 							+ 11 * cos(j02) * cos(j03) + 5)
-			+ 37 * cos(conj(j02)) * (T3 + 37 * sin(j02) - 18)
-			- (8 * sin(conj(j02)) * sin(conj(j03) + conj(j12))
-					+ 18 * sin(conj(j03) + conj(j12) + conj(j22))
-							* sin(conj(j02))
-					+ 11 * sin(conj(j02)) * sin(conj(j03)))
+			+ 37 * cos((j02)) * (T3 + 37 * sin(j02) - 18)
+			- (8 * sin((j02)) * sin((j03) + (j12))
+					+ 18 * sin((j03) + (j12) + (j22)) * sin((j02))
+					+ 11 * sin((j02)) * sin((j03)))
 					* (11 * cos(j02) * sin(j03) - T2
 							+ 18 * sin(j03 + j12 + j22) * cos(j02)
 							+ 8 * sin(j03 + j12) * cos(j02) - 15)
 			- (11 * cos(j03) * sin(j02) + 18 * cos(j03 + j12 + j22) * sin(j02)
 					+ 8 * cos(j03 + j12) * sin(j02))
-					* (18 * cos(conj(j03) + conj(j12) + conj(j22))
-							* cos(conj(j02)) - conj(T1)
-							+ 11 * cos(conj(j02)) * cos(conj(j03))
-							+ 8 * cos(conj(j02)) * cos(conj(j03) + conj(j12))
-							+ 5)
-			+ 37 * cos(j02) * (37 * sin(conj(j02)) + conj(T3) - 18);
+					* (18 * cos((j03) + (j12) + (j22)) * cos((j02)) - (T1)
+							+ 11 * cos((j02)) * cos((j03))
+							+ 8 * cos((j02)) * cos((j03) + (j12)) + 5)
+			+ 37 * cos(j02) * (37 * sin((j02)) + (T3) - 18);
 
-	jac[0][1] = j02 / 50 + (11 * j03) / 500 + j12 / 50 + j22 / 50 - pi / 100
-			- (18 * cos(conj(j02)) * sin(conj(j03) + conj(j12) + conj(j22))
-					+ 11 * cos(conj(j02)) * sin(conj(j03))
-					+ 8 * cos(conj(j02)) * sin(conj(j03) + conj(j12)))
+	jac[0][1] = j02 / 50 + (11 * j03) / 500 + j12 / 50 + j22 / 50 - M_PI / 100
+			- (18 * cos((j02)) * sin((j03) + (j12) + (j22))
+					+ 11 * cos((j02)) * sin((j03))
+					+ 8 * cos((j02)) * sin((j03) + (j12)))
 					* (18 * cos(j03 + j12 + j22) * cos(j02) - T1
 							+ 8 * cos(j03 + j12) * cos(j02)
 							+ 11 * cos(j02) * cos(j03) + 5)
-			+ (18 * cos(conj(j03) + conj(j12) + conj(j22)) * cos(conj(j02))
-					+ 11 * cos(conj(j02)) * cos(conj(j03))
-					+ 8 * cos(conj(j02)) * cos(conj(j03) + conj(j12)))
+			+ (18 * cos((j03) + (j12) + (j22)) * cos((j02))
+					+ 11 * cos((j02)) * cos((j03))
+					+ 8 * cos((j02)) * cos((j03) + (j12)))
 					* (11 * cos(j02) * sin(j03) - T2
 							+ 18 * sin(j03 + j12 + j22) * cos(j02)
 							+ 8 * sin(j03 + j12) * cos(j02) - 15)
 			- (11 * cos(j02) * sin(j03) + 18 * sin(j03 + j12 + j22) * cos(j02)
 					+ 8 * sin(j03 + j12) * cos(j02))
-					* (18 * cos(conj(j03) + conj(j12) + conj(j22))
-							* cos(conj(j02)) - conj(T1)
-							+ 11 * cos(conj(j02)) * cos(conj(j03))
-							+ 8 * cos(conj(j02)) * cos(conj(j03) + conj(j12))
-							+ 5)
+					* (18 * cos((j03) + (j12) + (j22)) * cos((j02)) - (T1)
+							+ 11 * cos((j02)) * cos((j03))
+							+ 8 * cos((j02)) * cos((j03) + (j12)) + 5)
 			+ (18 * cos(j03 + j12 + j22) * cos(j02)
 					+ 8 * cos(j03 + j12) * cos(j02) + 11 * cos(j02) * cos(j03))
-					* (18 * cos(conj(j02))
-							* sin(conj(j03) + conj(j12) + conj(j22)) - conj(T2)
-							+ 11 * cos(conj(j02)) * sin(conj(j03))
-							+ 8 * cos(conj(j02)) * sin(conj(j03) + conj(j12))
-							- 15);
+					* (18 * cos((j02)) * sin((j03) + (j12) + (j22)) - (T2)
+							+ 11 * cos((j02)) * sin((j03))
+							+ 8 * cos((j02)) * sin((j03) + (j12)) - 15);
 
 }
 
@@ -159,7 +149,7 @@ std::vector<double> calcInvK(geometry_msgs::Point gripper_pos) {
 	// Create optimizer object, choose AUL algorithm and tune its settings:
 	// * rho=1000       penalty coefficient
 	// * outerits=5     number of outer iterations to tune Lagrange coefficients
-	// * epsx=0.000001  stopM_M_PIng condition for inner iterations
+	// * epsx=0.000001  stopM_M_M_PIng condition for inner iterations
 	// * s=[1,1]        all variables have unit scale
 	// * exact low-rank preconditioner is used, updated after each 10 iterations
 	//

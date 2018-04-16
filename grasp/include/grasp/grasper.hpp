@@ -56,7 +56,7 @@ private:
 	void bodyToGlobal(arm::Pose3D *rpoint);
 	arm::Pose3D pixelToBody(cv::Vec2i pixel, int height);
 	void processCmd();
-	void getCube();
+	bool getCube();
 	int getDiscreteHeight(double height);
 	void moveCallback(const std_msgs::Int8::ConstPtr& status);
 	void cubeCallback(const geometry_msgs::PointStamped::ConstPtr& msg);
@@ -76,8 +76,6 @@ private:
 	arm::Arm arm;
 
 	Cube target;
-	string PLACE_ID;
-	string PICK_ID;
 	string command;
 	const float ballHeight;
 
@@ -86,6 +84,7 @@ private:
 	ros::Subscriber goalSub, cubeSub,statusSub;
 
 	void sendJointAngles(arm::JointAngles j, bool isClose);
+	void sendFlapCommands(string);
 };
 
 }

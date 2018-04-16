@@ -15,7 +15,7 @@
 #include <sstream>
 #include <cmath>
 #include <vector>
-#include "task_planner/helper.h"
+
 #include "geometry_msgs/Pose2D.h"
 #include <ros/spinner.h>
 #include <ros/callback_queue.h>

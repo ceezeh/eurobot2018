@@ -40,7 +40,7 @@ const string READPLAN_ID = "read";
 const string OPENFLAPS_ID = "openflaps";
 const string CLOSEFLAPS_ID = "closeflaps";
 const string FLAPHOLD_ID = "flaphold";
-const string FLAPHOLD_ID = "SEARCHhold";
+const string SEARCH_ID = "search";
 
 class ConstructionSequence {
 public:
